@@ -5,6 +5,15 @@
 using namespace std;
 using namespace family;
 
+/*
+* Possible exceptions:
+* 1) deleteRootException - root can't be deleted.
+* 2) relationNotFoundException - relation doesn't exist.
+* 3) badRelationException - relation syntax is incorrect.
+* 4) alreadyExistException - when trying to add father/mother to someone who already exist.
+* 5) personNotFoundException - when trying to add father/mother to someone who doesn't exist.
+*/
+
 class deleteRootException: public exception
 {
     virtual const char* what() const throw()
@@ -52,9 +61,13 @@ Tree::Tree(string root){
 
 /*Outline destructor - destruct the Tree*/
 Tree::~Tree(){
-    freeTree(this->root);
+    freeTree(this->root); // Free all dynamic memory that was allocated bt Tree nodes.
 }
 
+/*
+* freeTree - Free all dynamic memory that was allocated by tree nodes.
+* param root: The tree root.
+*/
 void Tree::freeTree(node *root)
 {
     if(root != NULL)
@@ -65,6 +78,13 @@ void Tree::freeTree(node *root)
     }
 }
 
+/*
+* getChild - get child of a given person (by name).
+* param 1: who - the person who's child need to be found.
+* param 2: found - true/false flag to stop recursive function.
+* param 3: root = the root of the Tree.
+* return value: node* - if node found Or NULL in case of no child at all.
+*/
 node* Tree::getChild(string who,bool found, node *root){
     if(root != NULL){
         if(found){
@@ -88,6 +108,12 @@ node* Tree::getChild(string who,bool found, node *root){
     }
 }
 
+/*
+* search - get person's node by given name.
+* param 1: who - the person who need to be found.
+* param 2: root = the root of the Tree.
+* return value: node* - if node found Or NULL in case of no matching.
+*/
 node* Tree::search(string who,node *root){
     if(root != NULL){
         if(root->name.compare(who) == 0){
@@ -104,6 +130,14 @@ node* Tree::search(string who,node *root){
     }
 }
 
+/*
+* search - search person by given name and get relation information object in return (relation_data).
+* param 1: who - the person who need to be found.
+* param 2: currentDepth = the current depth (recuresive iteration).
+* param 3: pos = self/father/mother.
+* param 4: root = Tree root.
+* return value: relation_data - an object which contains relation information: depth, sex and validation flag.
+*/
 relation_data Tree::search(string who,int currentDepth, position pos, node *root){
     relation_data data;
     if(root != NULL){
@@ -125,6 +159,14 @@ relation_data Tree::search(string who,int currentDepth, position pos, node *root
     }
 }
 
+/*
+* search - search person by relation_data object.
+* param 1: data - relation data object.
+* param 2: currentDepth = the current depth (recuresive iteration).
+* param 3: pos = self/father/mother.
+* param 4: root = Tree root.
+* return value: node* - if person was found by the specified data object. NULL in case of no match.
+*/
 node* Tree::search(relation_data data ,int currentDepth, position pos ,node *root){
     if(root != NULL && currentDepth <= data.depth){
         if(data.depth == currentDepth && data.pos == pos){
@@ -141,6 +183,12 @@ node* Tree::search(relation_data data ,int currentDepth, position pos ,node *roo
     }
 }
 
+/*
+* split - splits a string by given delimiter.
+* param 1: s - string input to split.
+* param 2: delimiter - specified character.
+* return value: vector of string splited by the specified delimiter.
+*/
 vector<string> Tree::split(const string& s, char delimiter){
     vector<string> words;
     string word = "";
@@ -151,6 +199,11 @@ vector<string> Tree::split(const string& s, char delimiter){
     return words;
 }
 
+/*
+* getRelationData - creates relation_data object by splitted string of relation (Example: "great-great-grandfather").
+* param 1: relation - a vector of splitted words which represents realtion.
+* return value: data - relation_data object.
+*/
 relation_data Tree::getRelationData(vector<string> relation){
     relation_data data;
     int size = relation.size();
@@ -209,6 +262,11 @@ relation_data Tree::getRelationData(vector<string> relation){
     return data;
 }
 
+/*
+* relationDataToString - the inverse function of 'getRelationData'. the function constructs a string from realtion_data object.
+* param 1: data - relation_data object.
+* return value: a string which describes a relation (Example: "great-great-grandmother").
+*/
 string Tree::relationDataToString(relation_data data){
     string to_return = "";
     if(data.valid){
@@ -240,6 +298,11 @@ string Tree::relationDataToString(relation_data data){
     return to_return;
 }
 
+/*
+* addFather - a function which adds father to child who already exist.
+* param 1: to - someone to add father to.
+* return value: a reference to the Tree object.
+*/
 Tree& Tree::addFather(string to, string name){
     node *son = search(to,this->root);
     if(son == NULL){
@@ -255,6 +318,11 @@ Tree& Tree::addFather(string to, string name){
     return *this;
 }
 
+/*
+* addMother - a function which adds mother to child who already exist.
+* param 1: to - someone to add mother to.
+* return value: a reference to the Tree object.
+*/
 Tree& Tree::addMother(string to, string name){
     node *son = search(to,this->root);
     if(son == NULL){
@@ -270,6 +338,13 @@ Tree& Tree::addMother(string to, string name){
     return *this;
 }
 
+/*
+* Helper function of display().
+* printPreOrder - prints Tree preorder and writes relevant relation info.
+* param 1: child - a child node of given father/mother node.
+* param 2: next - given father/mother.
+* param 3: pos - is father or mother.
+*/
 void printPreOrder(node *child, node *next, position pos){
     if(next == NULL)
         return;
@@ -283,10 +358,18 @@ void printPreOrder(node *child, node *next, position pos){
         printPreOrder(next,next->mother,mother_pos);
 }
 
+/*
+* display - prints the tree.
+*/
 void Tree::display(){
     printPreOrder(NULL,this->root,father_pos);
 }
 
+/*
+* relation - get relation information (father/mother...granfather..).
+* param 1: who - a name of person.
+* return value: string which represents a relation (Example: "me" or "father" ..).
+*/
 string Tree::relation(string who){
     relation_data data = search(who,0,father_pos,this->root);
     string to_return = "";
@@ -298,6 +381,11 @@ string Tree::relation(string who){
     return to_return;
 }
 
+/*
+* find - search person's name by given relation type (Example: returns the name of root if given relation is "me").
+* param 1: relation - a relation type (Example: "grandfather").
+* return value: string (name).
+*/
 string Tree::find(string relation){
     string to_return = "";
     vector<string> relationVector = split(relation,'-');
@@ -319,6 +407,10 @@ string Tree::find(string relation){
     return to_return;
 }
 
+/*
+* remove - removes a person and all lower depth relations (of the specified person).
+* param 1: name - person's name.
+*/
 void Tree::remove(string name){
     node *child = getChild(name, false, this->root);
     bool deleteFather = false;
